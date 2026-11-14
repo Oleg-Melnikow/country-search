@@ -16,6 +16,17 @@ export interface CountryCurrency {
   symbol: string;
 }
 
+export type BaseCountryInfo = Pick<
+  ResponseCountry,
+  'name' | 'capital' | 'region' | 'population' | 'area' | 'borders'
+>;
+
+export interface CountryCard extends BaseCountryInfo {
+  flagUrl: string;
+  currencies: string[];
+  languages: string[];
+}
+
 export interface ResponseCountry {
   area: number;
   cioc: string;
