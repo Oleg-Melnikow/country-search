@@ -97,3 +97,15 @@ export interface InFlightEntry {
   internalController: AbortController;
   subscribersCount: number;
 }
+
+export interface SearchHistoryOptions {
+  storageKey?: string;
+  maxItems?: number;
+  storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+}
+
+export interface SearchHistoryManager {
+  add: (query: string) => string[];
+  getAll: () => string[];
+  clear: () => void;
+}
