@@ -53,3 +53,33 @@ export interface ResponseCountry {
   topLevelDomain: string[];
   populationDensity: number;
 }
+
+export type SearchStatus = 'idle' | 'loading' | 'success' | 'empty' | 'error';
+
+export type SearchErrorType = 'timeout' | 'http' | 'network';
+
+export interface SearchErrorInfo {
+  type: SearchErrorType;
+  message: string;
+}
+
+export interface SearchState {
+  status: SearchStatus;
+  query: string;
+  results: CountryCard[];
+  error: SearchErrorInfo | null;
+}
+
+export type StateListener = (state: SearchState) => void;
+
+export interface SearchControllerOptions {
+  debounceMs?: number;
+  timeoutMs?: number;
+}
+
+export interface CountrySearchController {
+  handleInput: (query: string) => void;
+  retry: () => void;
+  getState: () => SearchState;
+  subscribe: (listener: StateListener) => () => void;
+}
