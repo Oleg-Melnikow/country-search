@@ -1,6 +1,6 @@
 import { describe, it, expect, jest } from '@jest/globals';
-import { ResponseCountry } from '../types/types.js';
-import { CountryFetcher, createCachedCountrySearch } from '../core/cachedCountrySearch.js';
+import { CountryFetcher, ResponseCountry } from '../types/types.js';
+import { createCachedCountrySearch } from '../core/cachedCountrySearch.js';
 import { MOCK_COUNTRY_SPAIN } from './mock-data.js';
 
 describe('createCachedCountrySearch — кэш и дедупликация in-flight запросов', () => {

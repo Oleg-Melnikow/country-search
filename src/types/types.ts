@@ -83,3 +83,17 @@ export interface CountrySearchController {
   getState: () => SearchState;
   subscribe: (listener: StateListener) => () => void;
 }
+
+export type CountryFetcher = (query: string, signal?: AbortSignal) => Promise<ResponseCountry[]>;
+
+export interface CachedCountrySearcher {
+  search: (query: string, signal?: AbortSignal) => Promise<ResponseCountry[]>;
+  clearCache: () => void;
+  getCacheSize: () => number;
+}
+
+export interface InFlightEntry {
+  promise: Promise<ResponseCountry[]>;
+  internalController: AbortController;
+  subscribersCount: number;
+}
