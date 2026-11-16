@@ -68,6 +68,7 @@ export interface SearchState {
   query: string;
   results: CountryCard[];
   error: SearchErrorInfo | null;
+  history: string[];
 }
 
 export type StateListener = (state: SearchState) => void;
@@ -75,6 +76,8 @@ export type StateListener = (state: SearchState) => void;
 export interface SearchControllerOptions {
   debounceMs?: number;
   timeoutMs?: number;
+  cachedSearcher?: CachedCountrySearcher;
+  historyManager?: SearchHistoryManager;
 }
 
 export interface CountrySearchController {
@@ -82,6 +85,8 @@ export interface CountrySearchController {
   retry: () => void;
   getState: () => SearchState;
   subscribe: (listener: StateListener) => () => void;
+  selectFromHistory: (historyQuery: string) => void;
+  clearHistory: () => void;
 }
 
 export type CountryFetcher = (query: string, signal?: AbortSignal) => Promise<ResponseCountry[]>;

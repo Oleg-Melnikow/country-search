@@ -2,6 +2,7 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 import { createCountrySearchController } from '../core/countrySearchController.js';
 import { createMockResponse } from '../utils/createMockResponse.js';
 import { MOCK_COUNTRY_SINGAPORE, MOCK_COUNTRY_SPAIN } from './mock-data.js';
+import { flushPromises } from '../utils/flushPromises.js';
 
 interface ControlledFetchCall {
   url: string;
@@ -93,13 +94,11 @@ describe('createCountrySearchController — гонка запросов (Race Co
     // 3. ИНВЕРСИЯ ПОРЯДКА ОТВЕТОВ:
     // Сначала резолвим второй (поздний) запрос по "spain"
     secondRequest.resolve(createMockResponse([MOCK_COUNTRY_SPAIN], 200));
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     // Затем пытаемся зарезолвить первый (ранний, но медленный) запрос по "sp" с устаревшим списком
     firstRequest.resolve(createMockResponse([MOCK_COUNTRY_SINGAPORE, MOCK_COUNTRY_SPAIN], 200));
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     // 4. Итоговая проверка состояния приложения:
     // В состоянии только результат последнего запроса ("Spain"), без ошибки отмены
@@ -128,13 +127,11 @@ describe('createCountrySearchController — гонка запросов (Race Co
 
     // 3. Второй запрос успешно завершается
     secondRequest?.resolve(createMockResponse([MOCK_COUNTRY_SPAIN], 200));
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     // 4. Пытаемся отклонить первый запрос серверной ошибкой (имитация запоздалого сбоя)
     firstRequest?.reject(new Error('Late network failure'));
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     // 5. Итоговое состояние остаётся успешным с данными по "Spain"
     const finalState = controller.getState();

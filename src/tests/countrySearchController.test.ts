@@ -5,6 +5,7 @@ import { MOCK_COUNTRIES_BEL } from './mock-data.js';
 import { ResponseCountry, SearchState } from '../types/types.js';
 import { createCountrySearchController } from '../core/countrySearchController.js';
 import { HttpError } from '../utils/httpError.js';
+import { flushPromises } from '../utils/flushPromises.js';
 
 const MOCK_RAW_BELARUS: ResponseCountry = MOCK_COUNTRIES_BEL[0];
 
@@ -15,6 +16,7 @@ describe('createCountrySearchController — базовая логика', () => 
 
   beforeEach(() => {
     jest.useFakeTimers();
+    globalThis.localStorage?.clear();
     searchSpy = jest.spyOn(apiModule, 'searchCountries');
   });
 
@@ -33,6 +35,7 @@ describe('createCountrySearchController — базовая логика', () => 
       status: 'idle',
       query: '',
       results: [],
+      history: [],
       error: null,
     };
 
@@ -60,8 +63,7 @@ describe('createCountrySearchController — базовая логика', () => 
     expect(searchSpy).toHaveBeenCalledWith('Belarus', expect.any(AbortSignal));
 
     // Дожидаемся завершения промиса searchCountries
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     const finalState = controller.getState();
     expect(statuses).toContain('loading');
@@ -85,13 +87,13 @@ describe('createCountrySearchController — базовая логика', () => 
     controller.handleInput('NonExistentCountry');
 
     jest.advanceTimersByTime(DEBOUNCE_MS);
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     const expectedState: SearchState = {
       status: 'empty',
       query: 'NonExistentCountry',
       results: [],
+      history: [],
       error: null,
     };
 
@@ -112,6 +114,7 @@ describe('createCountrySearchController — базовая логика', () => 
       status: 'idle',
       query: '',
       results: [],
+      history: [],
       error: null,
     };
 
@@ -141,8 +144,7 @@ describe('createCountrySearchController — базовая логика', () => 
     controller.handleInput('Bela');
     expect(capturedFirstSignal?.aborted).toBe(true);
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     // Ошибка отмены не должна попасть в error
     expect(controller.getState().error).toBeNull();
@@ -164,8 +166,7 @@ describe('createCountrySearchController — базовая логика', () => 
     controller.handleInput('Belarus');
     jest.advanceTimersByTime(DEBOUNCE_MS);
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     const state = controller.getState();
     expect(state.status).toBe('error');
@@ -182,8 +183,7 @@ describe('createCountrySearchController — базовая логика', () => 
     controller.handleInput('Belarus');
     jest.advanceTimersByTime(DEBOUNCE_MS);
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     expect(controller.getState().status).toBe('error');
     expect(controller.getState().error).toMatchObject({
@@ -194,8 +194,7 @@ describe('createCountrySearchController — базовая логика', () => 
     searchSpy.mockResolvedValueOnce([MOCK_RAW_BELARUS]);
     controller.retry();
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     expect(searchSpy).toHaveBeenCalledTimes(2);
     expect(controller.getState().status).toBe('success');
@@ -211,8 +210,7 @@ describe('createCountrySearchController — базовая логика', () => 
     controller.handleInput('Belarus');
     jest.advanceTimersByTime(DEBOUNCE_MS);
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     expect(controller.getState().status).toBe('error');
     expect(controller.getState().error).toMatchObject({
@@ -247,10 +245,10 @@ describe('createCountrySearchController — базовая логика', () => 
       query: '',
       results: [],
       error: null,
+      history: [],
     });
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
 
     expect(controller.getState().error).toBeNull();
   });
