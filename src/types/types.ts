@@ -109,3 +109,5 @@ export interface SearchHistoryManager {
   getAll: () => string[];
   clear: () => void;
 }
+
+export type StorageAdapter = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
