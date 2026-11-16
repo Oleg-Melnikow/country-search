@@ -4,12 +4,14 @@ import {
   SearchState,
   StateListener,
 } from '../types/types.js';
+import * as apiModule from './searchCountries.js';
 import { HttpError } from '../utils/httpError.js';
+import { createCachedCountrySearch } from './cachedCountrySearch.js';
 import { debounce } from './debounce.js';
 import { mapCountryResponse } from './mapCountryResponse.js';
-import { searchCountries } from './searchCountries.js';
+import { createSearchHistory } from './searchHistory.js';
 
-const DEFAULT_DEBOUNCE_MS = 300;
+const DEFAULT_DEBOUNCE_MS = 500;
 const DEFAULT_TIMEOUT_MS = 5000;
 
 const createCombinedSignal = (
@@ -51,14 +53,11 @@ const createCombinedSignal = (
   return { signal: combinedController.signal, cleanup };
 };
 
-const isDomExceptionWithName = (error: unknown, name: string): boolean => {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'name' in error &&
-    (error as { name: unknown }).name === name
-  );
-};
+const isDomExceptionWithName = (error: unknown, name: string): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  'name' in error &&
+  (error as { name: unknown }).name === name;
 
 export const createCountrySearchController = (
   options: SearchControllerOptions = {}
@@ -66,11 +65,18 @@ export const createCountrySearchController = (
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
+  const cachedSearcher =
+    options.cachedSearcher ??
+    createCachedCountrySearch((q, sig) => apiModule.searchCountries(q, sig));
+
+  const historyManager = options.historyManager ?? createSearchHistory();
+
   let state: SearchState = {
     status: 'idle',
     query: '',
     results: [],
     error: null,
+    history: historyManager.getAll(),
   };
 
   let activeController: AbortController | null = null;
@@ -111,19 +117,21 @@ export const createCountrySearchController = (
     const { signal, cleanup } = createCombinedSignal(userController.signal, timeoutMs);
 
     try {
-      const rawCountries = await searchCountries(query, signal);
+      const rawCountries = await cachedSearcher.search(query, signal);
 
       if (userController.signal.aborted || version !== inputVersion) {
         return;
       }
 
       const cards = rawCountries.map(mapCountryResponse);
+      const updatedHistory = cards.length > 0 ? historyManager.add(query) : historyManager.getAll();
 
       setState({
         status: cards.length > 0 ? 'success' : 'empty',
         query,
         results: cards,
         error: null,
+        history: updatedHistory,
       });
     } catch (error: unknown) {
       if (userController.signal.aborted || isDomExceptionWithName(error, 'AbortError')) {
@@ -187,6 +195,7 @@ export const createCountrySearchController = (
     if (trimmedQuery === '') {
       lastSubmittedQuery = '';
       setState({
+        ...state,
         status: 'idle',
         query: '',
         results: [],
@@ -202,6 +211,24 @@ export const createCountrySearchController = (
     });
 
     debouncedSearch(trimmedQuery, currentVersion);
+  };
+
+  const selectFromHistory = (historyQuery: string): void => {
+    const cleanQuery = historyQuery.trim();
+    if (!cleanQuery) {
+      return;
+    }
+
+    inputVersion += 1;
+    void executeSearch(cleanQuery, inputVersion);
+  };
+
+  const clearHistory = (): void => {
+    historyManager.clear();
+    setState({
+      ...state,
+      history: [],
+    });
   };
 
   const retry = (): void => {
@@ -224,6 +251,8 @@ export const createCountrySearchController = (
 
   return {
     handleInput,
+    selectFromHistory,
+    clearHistory,
     retry,
     getState,
     subscribe,
